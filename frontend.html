@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Example</title>
+    <style>
+      #products-container {
+        display: flex;
+        flex-direction: row;
+      }
+    </style>
+</head>
+<body>
+    <h1>Streaming Data from Backend</h1>
+    <div id="products-container"></div>
+    <span>Carrinho:</span> <br />
+    <div id="data-container"></div>
+
+    <script>
+        const fetchProducts = async () => {
+          const response = await fetch('http://localhost:3333/products');
+          const { products } = await response.json();
+          console.log(products)
+
+          let itemsDisplay = '';
+          for (const product of products) {
+            itemsDisplay += `<div><p>id: ${product.id}</p> <p>name: ${product.name}</p> <p>value: ${product.value}</p><div>`
+          }
+
+          document.getElementById("products-container").innerHTML = itemsDisplay;
+        }
+
+        fetchProducts();
+
+        const eventSource = new EventSource("http://localhost:3333/stream");
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const cart = data.cart;
+            console.log(cart)
+            let itemsDisplay = '';
+            for (const entry of cart) {
+              itemsDisplay += `<p>id: ${entry.item.id}</p> <p>name: ${entry.item.name}</p> <p>value: ${entry.item.value}</p> <p>quantity: ${entry.quantity}</p> <br />`
+            }
+
+            document.getElementById("data-container").innerHTML = itemsDisplay;
+        };
+
+        eventSource.onerror = () => {
+            console.log("Stream closed.");
+            eventSource.close();
+        };
+    </script>
+</body>
+</html>
