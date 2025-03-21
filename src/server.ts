@@ -15,6 +15,16 @@ app.use(cors());
 
 const PORT = process.env.PORT || 3333;
 
+async function ensureRedisConnection(request: Request, response: Response, next: NextFunction) {
+  console.log('connection', redisClient.isOpen);
+
+  if(!redisClient.isOpen){ 
+    await redisClient.connect();
+  }
+
+  return next();
+}
+
 app.get('/', async (request, response) => {
   return response.status(200).json({ status: 'ok' });
 });
@@ -32,7 +42,7 @@ app.post('/updateCart', async (request, response) => {
   return response.status(204).json({});
 });
 
-app.post('/addProduct', async (request, response) => {
+app.post('/addProduct', ensureRedisConnection, async (request, response) => {
   const { productId } = request.body;
 
   const product = products.find(product => product.id === productId);
@@ -69,7 +79,7 @@ app.post('/addProduct', async (request, response) => {
   return response.status(204).json({});
 });
 
-app.post('/removeProduct', async (request, response) => {
+app.post('/removeProduct', ensureRedisConnection, async (request, response) => {
   const { productId } = request.body;
 
   const product = products.find(product => product.id === productId);
@@ -91,7 +101,7 @@ app.post('/removeProduct', async (request, response) => {
   return response.status(204).json({});
 });
 
-app.get('/getCart', async (request, response) => {
+app.get('/getCart', ensureRedisConnection, async (request, response) => {
   const cart = await redisClient.get('cart');
 
   if(!cart) {
@@ -107,7 +117,7 @@ app.delete('/clearCart', async (request, response) => {
   return response.status(204).json({});
 });
 
-app.get("/stream", (req, res) => {
+app.get("/stream", ensureRedisConnection, (req, res) => {
   res.setHeader("Content-Type", "text/event-stream"); // SSE format
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -147,7 +157,7 @@ app.use((error: Error, request: Request, response: Response, next: NextFunction)
 })
 
 const bootUp = async () => {
-  await redisClient.connect();
+  // await redisClient.connect();
 
   app.listen(PORT, () => {
     console.log(`🚀 Server started on port ${PORT}`);
